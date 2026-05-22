@@ -1,0 +1,9 @@
+# complied and wave files
+*.vcd
+filelist
+compiled
+*.log
+
+# MACOSX
+.DS_Store
+

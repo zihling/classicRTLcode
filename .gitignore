@@ -1,6 +1,5 @@
 # complied and wave files
 *.vcd
-filelist
 compiled
 *.log
 

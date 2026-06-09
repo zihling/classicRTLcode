@@ -1,4 +1,3 @@
-// testbench for CLK module
 `timescale 1ns/1ns
 module CLK_tb ();
     logic clk;
@@ -8,16 +7,18 @@ module CLK_tb ();
     time half_per;
 
     // DUT
-    clk_divider dut (.clk(clk), .rst(rst), .newclk(target), .divider_value(divider_value));
+    clk_divider #(5) dut (.clk(clk), .rst(rst), .new_clk(target));
     
     // Clock generation
-    always #5 clk = ~clk;
+    always #2 clk = ~clk;
 
     // Reset generation
     initial begin
         clk = 0;
         rst = 0; #20;
         rst = 1;
+        #100;
+        $finish;
     end
 
     // stimulus

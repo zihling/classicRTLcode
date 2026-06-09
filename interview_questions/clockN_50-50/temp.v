@@ -1,30 +1,35 @@
-module clk (input clk, input rst, inut [7:0] divider_value, output new_clk);
+module clk_divider #(parameter DIVIDER_VALUE=3)(input clk, input rst, output new_clk);
+    wire [7:0] d = DIVIDER_VALUE - 1;
     reg rise, fall;
-    reg [7:0] posedge_cnt;
-    wire [7:0] d = divider_value - 8'd1;
+    reg [7:0] counter;
 
-    always @(posedge clk or nededge rst) begin
-        if (!rst)
-            posedge_cnt <= 8'd0;
-        else
-            posedge_cnt <= (posedge_cnt == d)? 8'd0:(posedge_cnt + 8'd1); 
-    end
-
+    // update counter
     always @(posedge clk or negedge rst) begin
         if (!rst)
-            rise <= 1'b0;
-        else if (posedge_cnt == {1'b0, d[7:1]})
-            rise <= 1'b1;
-        else if (posedge_cnt == d)
-            rise <= 1'b0;
+            counter <= 0;
+        else if (counter == d)
+            counter <= 0;
+        else
+            counter <= counter + 1;
     end
 
+    // update rise edge
+    always @(posedge clk or negedge rst) begin
+        if (!rst) begin
+            rise <= 0;
+        end
+        else if (counter == (d >> 1))
+            rise <= 1;
+        else if (counter == d)
+            rise <= 0;    
+    end
+
+    // update fall edge
     always @(negedge clk or negedge rst) begin
         if (!rst)
-            fall <= 1'b0;
+            fall <= 0;
         else if (d[0] == 1'b0)
             fall <= rise;
     end
-
-    assign new_clk = fall | rise;
+    assign new_clk = rise | fall;
 endmodule

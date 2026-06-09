@@ -1,6 +1,6 @@
 // Clock divide by N circuit with 50-50 duty
 
-module CLK (input clk, input rst, input [7:0] divider_value, output newclk);
+module clk_divider (input clk, input rst, input [7:0] divider_value, output newclk);
     reg rise, fall;
     reg [7:0] posedge_cnt;
     wire [7:0] d = divider_value - 8'd1;

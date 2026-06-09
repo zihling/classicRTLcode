@@ -1,67 +1,46 @@
-// a 4-bit round robin arbiter with kill chain
+// round robin arbiter with kill chain
+module variable_priority_arbiter #(parameter  NUM_REQS=4) (
+    input [NUM_REQS-1:0] REQ,
+    input [NUM_REQS-1:0] prio, // one hot input of variable priority
+    output [NUM_REQS-1:0] GNT
+);
+    wire [2*NUM_REQS:0] kills;
+    wire [2*NUM_REQS-1:0] priority_int = {{NUM_REQS{1'b0}}, prio}; // extend priority
+    wire [2*NUM_REQS-1:0] req_int = {REQ, REQ};
+    wire [2*NUM_REQS-1:0] gnt_int;
 
-module rr_arbiter (
+    assign kills[0] = 1'b0;
+
+    genvar i;
+    generate
+        for (i = 0; i < 2*NUM_REQS; i++) begin: per_req_logic
+            assign gnt_int[i] = priority_int[i]? req_int[i] : (~kills[i] & req_int[i]);
+            assign kills[i+1] = priority_int[i]? gnt_int[i] : (kills[i] | gnt_int[i]); 
+        end
+    endgenerate
+    assign GNT = gnt_int[NUM_REQS-1:0] | gnt_int[2*NUM_REQS-1:NUM_REQS];
+endmodule
+
+
+module rr_arbiter #(parameter  NUM_REQS=4, parameter RESET_PRIORITY=1) (
     input clk,
     input rst_n,
-    input [3:0] REQ,
-    output reg [3:0] GNT
+    input [NUM_REQS-1:0] REQ,
+    output [NUM_REQS-1:0] GNT
 );
-    reg [1:0] pointer;
-    reg [3:0] req_rot;
-    reg [3:0] gnt_rot;
-    reg [3:0] kill;
+    wire priority_en = |GNT; // if there is a request, then we should always update priority
+    wire [NUM_REQS-1:0] priority_next;
 
-    // rotate request according to pointer (assume LSB is the highest priority)
-    always @(*) begin
-        case (pointer)
-            2'b00: req_rot = REQ;
-            2'b01: req_rot = {REQ[0], REQ[3:1]};
-            2'b10: req_rot = {REQ[1:0], REQ[3:2]};
-            2'b11: req_rot = {REQ[2:0], REQ[3]};
-            default: req_rot <= REQ;
-        endcase
-    end
-
-    // fixed priority arbiter using kill chain
-    always @(*) begin
-        kill[0] = 1'b0;
-        gnt_rot[0] = req_rot[0] & ~kill[0];
-
-        kill[1] = kill[0] | req_rot[0];
-        gnt_rot[1] = req_rot[1] & ~kill[1];
-
-        kill[2] = kill[1] | req_rot[1];
-        gnt_rot[2] = req_rot[2] & ~kill[2];
-
-        kill[3] = kill[2] | req_rot[2];
-        gnt_rot[3] = req_rot[3] & ~kill[3];
-    end
-
-    // rotate grant back
-    always @(*) begin
-        case (pointer) 
-            2'd0: GNT = gnt_rot;
-            2'd1: GNT = {gnt_rot[2:0], gnt_rot[3]};
-            2'd2: GNT = {gnt_rot[1:0], gnt_rot[3:2]};
-            2'd3: GNT = {gnt_rot[0], gnt_rot[3:1]};
-            default: GNT <= gnt_rot;
-        endcase
-    end
-
-    // update pointer
+    assign priority_next = {GNT[NUM_REQS-2:0], GNT[NUM_REQS-1]};
+    
+    reg [NUM_REQS-1:0] priority_;
     always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            pointer <= 2'd0;
-        end
-        else begin
-            case (GNT)
-                4'b0001: pointer <= 2'd1;
-                4'b0010: pointer <= 2'd2;
-                4'b0100: pointer <= 2'd3;
-                4'b1000: pointer <= 2'd0;
-                default: pointer <= pointer;
-            endcase
-        end
+        if (!rst_n)
+            priority_ <= RESET_PRIORITY;
+        else if (priority_en)
+            priority_ <= priority_next;
     end
 
+    //instantiate variable arbiter
+    variable_priority_arbiter #(NUM_REQS) va (.REQ(REQ), .prio(priority_), .GNT(GNT));
 endmodule

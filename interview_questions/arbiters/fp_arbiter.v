@@ -1,25 +1,22 @@
 // a fixed priority arbiter
 // GNT is one-hot coded most of the time
-// in this example, priority is REQ[3] > REQ[2] > REQ[1] > REQ[0]
+// in this example, priority is REQ[0] > REQ[1] > REQ[2] > REQ[3]
+// code comes from Cornell course ECE5745
 
-module fp_arbiter (
-    input clk,
-    input rst_n,
-    input [3:0] REQ,
-    output reg [3:0] GNT
+module fixed_arbiter #(parameter NUM_REQS=4)(
+    input [NUM_REQS-1:0] REQ,
+    output reg [NUM_REQS-1:0] GNT
 );
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n)
-            GNT <= 4'b0000;
-        else if (REQ[3])
-            GNT <= 4'b1000;
-        else if (REQ[2])
-            GNT <= 4'b0100;
-        else if (REQ[1])
-            GNT <= 4'b0010;
-        else if (REQ[0])
-            GNT <= 4'b0001;
-        else
-            GNT <= 4'b0000;
-    end
+    wire [NUM_REQS:0] kills;
+    assign kills[0] = 1'b0;
+    wire [NUM_REQS-1:0] gnt_int;
+
+    genvar i;
+    generate
+        for (i = 0; i < NUM_REQS; i++) begin: per_req_logic
+            assign gnt_int[i] = !kills[i] & REQ[i];
+            assign kills[i+1] = kills[i] | gnt_int[i];
+        end
+    endgenerate
+    assign GNT = gnt_int;
 endmodule

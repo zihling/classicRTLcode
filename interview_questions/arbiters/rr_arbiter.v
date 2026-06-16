@@ -9,7 +9,7 @@ module variable_priority_arbiter #(parameter  NUM_REQS=4) (
     wire [2*NUM_REQS-1:0] req_int = {REQ, REQ};
     wire [2*NUM_REQS-1:0] gnt_int;
 
-    assign kills[0] = 1'b0;
+    assign kills[0] = 1'b1;  // before meeting current priority bits, we should forbid grant
 
     genvar i;
     generate

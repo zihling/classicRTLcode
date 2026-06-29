@@ -3,7 +3,7 @@ some classic RTL designs
 
 ## Open-Source Tools
 
-- [Icarus Verilog](https://github.com/steveicarus/iverilog) for synthesis.
+- [Icarus Verilog](https://github.com/steveicarus/iverilog) or [Verilator](https://verilator.org/) for synthesis.
 - [GTKWave](https://gtkwave.sourceforge.net/) for wave viewing.
 
 Some alias
@@ -18,7 +18,7 @@ alias wave='gtkwave'
 # for Verilator
 verilator -sv --binary --top-module <top_module_name> -f filelist
 
-// for Verilator with VCD waveform
+# for Verilator with VCD waveform
 verilator -sv --binary --trace --top-module <top_module_name> -f filelist
 ```
 

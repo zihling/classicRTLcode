@@ -1,4 +1,6 @@
 // CLK.v
 // CLK_tb.sv
-temp.v
-temp_tb.sv
+// configurable_clk.v
+// configurable_clk_tb.sv
+CLK.sv
+CLK_tb.sv

@@ -14,6 +14,14 @@ alias irun='vvp compiled'
 alias wave='gtkwave'
 ```
 
+```Bash
+# for Verilator
+verilator -sv --binary --top-module <top_module_name> -f filelist
+
+// for Verilator with VCD waveform
+verilator -sv --binary --trace --top-module <top_module_name> -f filelist
+```
+
 ## Verification Methodologies
 
 ### SVA

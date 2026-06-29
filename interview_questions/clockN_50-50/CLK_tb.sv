@@ -1,58 +1,64 @@
-// testbench for CLK module
-`timescale 1ns/1ns
-module CLK_tb ();
-    logic clk;
-    logic rst;
-    wire target;
-    logic [7:0] divider_value;
-    time half_per;
+// system verilog version testbench, with some SVA commends
 
-    // DUT
-    clk_divider dut (.clk(clk), .rst(rst), .newclk(target), .divider_value(divider_value));
-    
-    // Clock generation
+`timescale 1ns/1ns
+module CLK_tb;
+    parameter divider_value = 7;
+    logic clk;
+    logic rst_n;
+    logic new_clk;
+
+    // instantiate clk divider module
+    clk_divider #(.divider_value(divider_value)) dut (
+        .clk(clk),
+        .rst_n(rst_n),
+        .new_clk(new_clk)
+    );
+
+    // clock generation
+    initial clk = 0;
     always #5 clk = ~clk;
 
-    // Reset generation
+    // waveform dump
     initial begin
-        clk = 0;
-        rst = 0; #20;
-        rst = 1;
+        $dumpfile("clk_divider_config.vcd");
+        $dumpvars(0, CLK_tb);
     end
 
     // stimulus
     initial begin
-        divider_value = 8'd5;
-        half_per = 5 * divider_value;
+        rst_n = 0;
+        repeat (3) @(posedge clk);
+
+        rst_n = 1;
+        repeat (50) @(posedge clk);
+
+        $finish;
     end
 
-    // Monitor
-    always @(posedge clk) begin
-        $display("clk=%0d", clk);
-        $display("new_clk=%0d", target);
-    end
+    // basic SVA: reset behavior
+    property reset_clear;
+        @(posedge clk)
+        ! rst_n |-> (dut.count == 0 && dut.rise == 0 && dut.fall == 0);
+    endproperty
 
-    // Checker / Assertion
-    time last_toggle;
-    always @(target) begin
-        if (rst) begin
-            if (last_toggle != 0) begin
-                if ($time - last_toggle != half_per) begin
-                    $error("Wrong divide-by-%0d timing", divider_value);
-                end
-                else begin
-                    $info("Right rising edge");
-                end
-            end
-            last_toggle = $time;
-        end
-    end
+    assert property (reset_clear)
+        else $error("Reset behavior failed.");
 
-    // Waveform dump
-    initial begin
-        $dumpfile("wave.vcd");
-        $dumpvars(0, CLK_tb);
-    end
+    // basic SVA: counter should wrap around after d
+    property counter_wrap;
+        @(posedge clk) disable iff (!rst_n)
+        dut.count == dut.D |=> dut.count == 0;
+    endproperty
 
+    assert property (counter_wrap)
+        else $error("Counter did not wrap correctly");
 
+    // basic SVA: no X on output
+    property no_x_out;
+        @(posedge clk) disable iff (!rst_n)
+        !$isunknown(new_clk);
+    endproperty
+
+    assert property (no_x_out)
+        else $error("new_clk has X value");
 endmodule
